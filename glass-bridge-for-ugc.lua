@@ -7,7 +7,7 @@
          \/          \/         \/    \/                \/     \/     \/                   
           \_Welcome to LuaObfuscator.com   (Alpha 0.10.8) ~  Much Love, Ferib 
 		  
- loadstring(game:HttpGet("https://raw.githubusercontent.com/montovoni/scripts/refs/heads/main/glass-bridge-for-ugc.lua"))()
+ loadstring(game:HttpGet("https://raw.githubusercontent.com/montovoni/scripts/refs/heads/main/glass-bridge-for-ugc.lua"))() 
 
 ]]--
 
