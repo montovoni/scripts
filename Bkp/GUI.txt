@@ -1,0 +1,603 @@
+-- Espera até que o jogo esteja carregado e o jogador local esteja pronto
+repeat wait() until game:IsLoaded() and game.Players and game.Players.LocalPlayer and game.Players.LocalPlayer.Character
+
+-------------------------------------------------------------------------------
+
+-- Variaveis para o Infinite Jump
+local InfiniteJumpEnabled = false  -- Começa desativado
+local UserInputService = game:GetService("UserInputService")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+-- Função que permite o pulo infinito quando ativado
+UserInputService.JumpRequest:Connect(function()
+    if InfiniteJumpEnabled then
+        LocalPlayer.Character:FindFirstChildOfClass("Humanoid"):ChangeState("Jumping")
+    end
+end)
+
+-------------------------------------------------------------------------------
+
+-- Variaveis para o fly
+local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
+
+local Flying = false
+local Speed = 50
+local BodyGyro, BodyVelocity
+local Movement = Vector3.new(0, 0, 0)
+
+-------------------------------------------------------------------------------
+
+-- Verifica se o script já foi executado antes para evitar duplicação
+if getgenv().GuiExecuted then 
+    -- Se a GUI foi criada anteriormente, destrua-a
+    if game.CoreGui:FindFirstChild("thisoneissocoldww") then
+        game.CoreGui.thisoneissocoldww:Destroy()
+    end
+
+    getgenv().GuiExecuted = false  -- Marca que a execução foi cancelada 
+end
+
+-- Marca o script como executado
+getgenv().GuiExecuted = true
+
+------------------------------------------------------
+
+-- Cria a interface gráfica (GUI)
+local thisoneissocoldww = Instance.new("ScreenGui")
+local madebybloodofbatus = Instance.new("Frame")
+local UICornerw = Instance.new("UICorner")
+local uselesslabelone = Instance.new("TextLabel")
+local expandButton = Instance.new("TextButton") -- Botão para expandir
+local creditsLabel = Instance.new("TextLabel") -- Label para os créditos
+local UICornerww = Instance.new("UICorner")
+
+-- Novo: CheckboxJump
+local CheckboxJump = Instance.new("Frame")
+local CheckboxJumpButton = Instance.new("TextButton")
+local CheckboxJumpLabel = Instance.new("TextLabel")
+local isCheckedJump = false -- Variável para controlar o estado do CheckboxJump
+
+-- Novo: CheckboxFly
+local CheckboxFly = Instance.new("Frame")
+local CheckboxFlyButton = Instance.new("TextButton")
+local CheckboxFlyLabel = Instance.new("TextLabel")
+local isCheckedFly = false -- Variável para controlar o estado do CheckboxFly
+
+-- Novo: CheckboxEsp
+local CheckboxEsp = Instance.new("Frame")
+local CheckboxEspButton = Instance.new("TextButton")
+local CheckboxEspLabel = Instance.new("TextLabel")
+local isCheckedEsp = false -- Variável para controlar o estado do CheckboxEsp
+
+-- Novo: TextBoxSpeed
+local CheckboxWalkSpeedLabel = Instance.new("TextLabel")
+
+-------------------------------------------------------------------------------
+
+-- Configurações da GUI
+thisoneissocoldww.Name = "thisoneissocoldww"
+thisoneissocoldww.Parent = game.CoreGui
+thisoneissocoldww.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+madebybloodofbatus.Name = "madebybloodofbatus"
+madebybloodofbatus.Parent = thisoneissocoldww
+madebybloodofbatus.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+madebybloodofbatus.Position = UDim2.new(0.0854133144, 0, 0.13128835, 0)
+madebybloodofbatus.Size = UDim2.new(0, 230, 0, 25) -- Tamanho inicial da GUI
+
+local UICornerw = Instance.new("UICorner") -- Cria o UICorner
+UICornerw.Parent = madebybloodofbatus -- Define como filho da GUI principal
+UICornerw.CornerRadius = UDim.new(0, 5) -- Define o arredondamento (5 pixels)
+
+-------------------------------------------------------------------------------
+
+-- Labels
+uselesslabelone.Name = "uselesslabelone"
+uselesslabelone.Parent = madebybloodofbatus
+uselesslabelone.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+uselesslabelone.BackgroundTransparency = 1.000
+uselesslabelone.Size = UDim2.new(0, 95, 0, 24)
+uselesslabelone.Font = Enum.Font.SourceSans
+uselesslabelone.Text = "Roblox"
+uselesslabelone.TextColor3 = Color3.fromRGB(255, 255, 255)
+uselesslabelone.TextSize = 16
+uselesslabelone.TextXAlignment = Enum.TextXAlignment.Center
+uselesslabelone.Position = UDim2.new(0.5, -uselesslabelone.Size.X.Offset / 2, 0, 0)
+
+uselesslabelone.Font = Enum.Font.ArialBold
+uselesslabelone.TextColor3 = Color3.fromRGB(255, 255, 255)
+uselesslabelone.TextSize = 16
+
+-------------------------------------------------------------------------------
+
+-- Botão expandir
+expandButton.Name = "expandButton"
+expandButton.Parent = madebybloodofbatus
+expandButton.BackgroundColor3 =  Color3.fromRGB(0, 0, 0)
+expandButton.TextColor3 = Color3.fromRGB(255, 255, 255) -- Cor do texto do botão
+expandButton.Text = "+" -- Texto do botão
+expandButton.Size = UDim2.new(0, 25, 0, 25) -- Tamanho do botão
+expandButton.Position = UDim2.new(1, -25, 0, 0) -- Posição do botão no canto direito
+expandButton.Font = Enum.Font.ArialBold
+expandButton.TextSize = 16
+expandButton.ZIndex = 2 -- Garante que o botão fique na frente
+
+UICornerww.Name = "UICornerww"
+UICornerww.Parent = expandButton
+
+-------------------------------------------------------------------------------
+
+-- Label para créditos (inicialmente escondida)
+creditsLabel.Name = "creditsLabel"
+creditsLabel.Parent = madebybloodofbatus
+creditsLabel.Text = "Discord: montovoni"
+creditsLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+creditsLabel.BackgroundTransparency = 1  -- Mantém a transparência para o fundo cinza aparecer
+
+-- Largura ajustada e altura fixa, mas alinhamento à esquerda
+creditsLabel.Size = UDim2.new(0, 200, 0, 20)  -- Largura ajustada, altura fixa
+creditsLabel.AnchorPoint = Vector2.new(0.5, 1) -- Centraliza horizontalmente e ancora na parte inferior
+creditsLabel.Position = UDim2.new(0.5, 0, 1, -5) -- Centraliza horizontalmente e coloca 5 pixels acima da borda inferior
+
+-- Fonte e tamanho do texto
+creditsLabel.Font = Enum.Font.ArialBold
+creditsLabel.TextSize = 16
+creditsLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+
+-- Inicialmente invisível
+creditsLabel.Visible = false
+
+-------------------------------------------------------------------------------
+
+-- Criando um contêiner para os botões adicionais
+local extraButtonsContainer = Instance.new("Frame")
+extraButtonsContainer.Name = "extraButtonsContainer"
+extraButtonsContainer.Parent = madebybloodofbatus
+extraButtonsContainer.BackgroundTransparency = 1
+extraButtonsContainer.Size = UDim2.new(1, -10, 0, 60) -- Ajusta altura para comportar os botões
+
+-- Ajuste a posição do contêiner com 5 pixels entre o título e os botões
+local alturaLabel = uselesslabelone.Size.Y.Offset
+extraButtonsContainer.Position = UDim2.new(0, 5, 0, alturaLabel + 5 + 5) -- 5 pixels de espaçamento entre título e botões
+extraButtonsContainer.Visible = false
+
+-------------------------------------------------------------------------------
+
+-- Criando um contêiner para os dois elementos (Texto e CheckboxJump)
+local container = Instance.new("Frame")
+container.Name = "Container"
+container.Parent = extraButtonsContainer
+container.BackgroundTransparency = 1
+container.Size = UDim2.new(1, -10, 0, 65) -- Largura total disponível, altura ajustada para 45px (20px + 5px + 20px)
+container.Position = UDim2.new(0, 5, 0, 0) -- Espaçamento de 5px da borda superior
+
+-------------------------------------------------------------------------------
+
+-- Ajuste do texto "Infinite Jump" para alinhá-lo à esquerda
+CheckboxJumpLabel.Name = "CheckboxJumpLabel"
+CheckboxJumpLabel.Parent = container
+CheckboxJumpLabel.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+CheckboxJumpLabel.BackgroundTransparency = 1
+CheckboxJumpLabel.TextXAlignment = Enum.TextXAlignment.Left -- Alinha o texto à esquerda
+CheckboxJumpLabel.Font = Enum.Font.ArialBold
+CheckboxJumpLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+CheckboxJumpLabel.TextSize = 16
+CheckboxJumpLabel.Size = UDim2.new(0, 100, 0, 20) -- Tamanho fixo para o texto
+CheckboxJumpLabel.Text = "Infinite Jump"
+CheckboxJumpLabel.Position = UDim2.new(0, 0, 0, 0) -- Posição no topo do container
+
+-- Ajuste do CheckboxJump para quadrado, alinhado à direita
+CheckboxJump.Name = "CheckboxJump"
+CheckboxJump.Parent = container
+CheckboxJump.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+CheckboxJump.AnchorPoint = Vector2.new(1, 0) -- Ancoragem à direita
+CheckboxJump.Position = UDim2.new(1, -5, 0, 0) -- Alinha à direita, 5px de distância da borda direita
+CheckboxJump.Size = UDim2.new(0, 18, 0, 18)
+CheckboxJump.BorderColor3 = Color3.fromRGB(255, 255, 255)
+
+-- Levemente arredondando as pontas do CheckboxJump
+local UICornerCheckboxJump = Instance.new("UICorner")
+UICornerCheckboxJump.Parent = CheckboxJump
+UICornerCheckboxJump.CornerRadius = UDim.new(0, 3)
+
+-- CheckboxJumpButton permanece com as mesmas configurações
+CheckboxJumpButton.Name = "CheckboxJumpButton"
+CheckboxJumpButton.Parent = CheckboxJump
+CheckboxJumpButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50) -- Cor cinza
+CheckboxJumpButton.Size = UDim2.new(1, 0, 1, 0)
+CheckboxJumpButton.Text = "✔️"
+
+-- Arredondando levemente o CheckboxJumpButton
+local UICornerCheckboxJumpButton = Instance.new("UICorner")
+UICornerCheckboxJumpButton.Parent = CheckboxJumpButton
+UICornerCheckboxJumpButton.CornerRadius = UDim.new(0, 3)
+
+-- Função para lidar com o clique no CheckboxJump
+CheckboxJumpButton.MouseButton1Click:Connect(function()
+    isCheckedJump = not isCheckedJump -- Inverte o estado
+
+    if isCheckedJump then
+        CheckboxJumpButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0) -- Verde quando marcado
+        InfiniteJumpEnabled = true  -- Ativa o pulo infinito
+		
+		CheckboxFlyButton.Active = false
+		CheckboxFlyButton.Visible = false
+    else
+        CheckboxJumpButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50) -- Cinza quando desmarcado
+        InfiniteJumpEnabled = false  -- Desativa o pulo infinito
+		
+		CheckboxFlyButton.Active = true
+		CheckboxFlyButton.Visible = true
+    end
+end)
+
+-------------------------------------------------------------------------------
+
+-- Label do Fly, alinhado à esquerda, abaixo do Infinite Jump
+CheckboxFlyLabel.Name = "CheckboxFlyLabel"
+CheckboxFlyLabel.Parent = container
+CheckboxFlyLabel.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+CheckboxFlyLabel.BackgroundTransparency = 1
+CheckboxFlyLabel.TextXAlignment = Enum.TextXAlignment.Left -- Alinha o texto à esquerda
+CheckboxFlyLabel.Position = UDim2.new(0, 0, 0, CheckboxJumpLabel.Size.Y.Offset + 10) -- 10 pixels de espaçamento
+CheckboxFlyLabel.Font = Enum.Font.ArialBold
+CheckboxFlyLabel.Size = UDim2.new(0, 100, 0, 20) -- Tamanho fixo para o texto
+CheckboxFlyLabel.Text = "Fly Speed"
+CheckboxFlyLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+CheckboxFlyLabel.TextSize = 16
+
+-- Configurações da GUI para o Fly, alinhado à direita
+CheckboxFly.Name = "CheckboxFly"
+CheckboxFly.Parent = container
+CheckboxFly.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+CheckboxFly.AnchorPoint = Vector2.new(1, 0) -- Ancoragem à direita
+CheckboxFly.Position = UDim2.new(1, -5, 0, CheckboxJump.Position.Y.Offset + CheckboxJump.Size.Y.Offset + 10)
+CheckboxFly.Size = UDim2.new(0, 18, 0, 18)
+CheckboxFly.BorderColor3 = Color3.fromRGB(255, 255, 255)
+
+-- Levemente arredondando as pontas do CheckboxFly
+local UICornerFly = Instance.new("UICorner")
+UICornerFly.Parent = CheckboxFly
+UICornerFly.CornerRadius = UDim.new(0, 3)
+
+-- Configuração do CheckboxFlyButton
+CheckboxFlyButton.Name = "CheckboxFlyButton"
+CheckboxFlyButton.Parent = CheckboxFly
+CheckboxFlyButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50) -- Cor cinza
+CheckboxFlyButton.Size = UDim2.new(1, 0, 1, 0)
+CheckboxFlyButton.Text = "✔️"
+
+-- Levemente arredondando as pontas do CheckboxFlyButton
+local UICornerCheckboxFlyButton = Instance.new("UICorner")
+UICornerCheckboxFlyButton.Parent = CheckboxFlyButton
+UICornerCheckboxFlyButton.CornerRadius = UDim.new(0, 3)
+
+-- Função para lidar com o clique no CheckboxFly
+CheckboxFlyButton.MouseButton1Click:Connect(function()
+    isCheckedFly = not isCheckedFly -- Inverte o estado do voo
+
+    if isCheckedFly then
+        -- Altera a cor para verde quando o voo é ativado
+        CheckboxFlyButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0) 
+
+        FlyEnabled = true  
+        ToggleFly()  
+
+        CheckboxJumpButton.Active = false
+        CheckboxJumpButton.Visible = false
+    else
+        CheckboxFlyButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)	
+
+        FlyEnabled = false  
+        ToggleFly() 
+
+        CheckboxJumpButton.Active = true
+        CheckboxJumpButton.Visible = true
+    end
+end)
+
+-------------------------------------------------------------------------------
+
+-- Label do ESP, alinhado à esquerda, abaixo do Fly Speed
+CheckboxEspLabel.Name = "CheckboxEspLabel"
+CheckboxEspLabel.Parent = container
+CheckboxEspLabel.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+CheckboxEspLabel.BackgroundTransparency = 1
+CheckboxEspLabel.TextXAlignment = Enum.TextXAlignment.Left -- Alinha o texto à esquerda
+CheckboxEspLabel.Position = UDim2.new(0, 0, 0, CheckboxFlyLabel.Position.Y.Offset + CheckboxFlyLabel.Size.Y.Offset + 10) -- 10 pixels de espaçamento
+CheckboxEspLabel.Font = Enum.Font.ArialBold
+CheckboxEspLabel.Size = UDim2.new(0, 100, 0, 20) -- Tamanho fixo para o texto
+CheckboxEspLabel.Text = "Esp Players"
+CheckboxEspLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+CheckboxEspLabel.TextSize = 16
+
+-- Configurações da GUI para o Fly, alinhado à direita
+CheckboxEsp.Name = "CheckboxEsp"
+CheckboxEsp.Parent = container
+CheckboxEsp.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+CheckboxEsp.AnchorPoint = Vector2.new(1, 0) -- Ancoragem à direita
+CheckboxEsp.Position = UDim2.new(1, -5, 0, CheckboxFly.Position.Y.Offset + CheckboxFly.Size.Y.Offset + 10) -- Posiciona à direita, 10px da borda
+CheckboxEsp.Size = UDim2.new(0, 18, 0, 18)
+CheckboxEsp.BorderColor3 = Color3.fromRGB(255, 255, 255)
+
+-- Levemente arredondando as pontas do CheckboxEsp
+local UICornerEsp = Instance.new("UICorner")
+UICornerEsp.Parent = CheckboxEsp
+UICornerEsp.CornerRadius = UDim.new(0, 3)
+
+-- Configuração do CheckboxEspButton
+CheckboxEspButton.Name = "CheckboxEspButton"
+CheckboxEspButton.Parent = CheckboxEsp
+CheckboxEspButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50) -- Cor cinza
+CheckboxEspButton.Size = UDim2.new(1, 0, 1, 0)
+CheckboxEspButton.Text = "✔️"
+
+-- Levemente arredondando as pontas do CheckboxEspButton
+local UICornerCheckboxEspButton = Instance.new("UICorner")
+UICornerCheckboxEspButton.Parent = CheckboxEspButton
+UICornerCheckboxEspButton.CornerRadius = UDim.new(0, 3)
+
+-- Conecta o checkbox ao ESP
+CheckboxEspButton.MouseButton1Click:Connect(function()
+    isESPEnabled = not isESPEnabled -- Inverte o estado do ESP
+
+    if isESPEnabled then
+        CheckboxEspButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0) -- Verde quando ativado
+    else
+        CheckboxEspButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50) -- Cinza quando desativado
+    end
+end)
+
+-------------------------------------------------------------------------------
+
+local humanoid = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+local RunService = game:GetService("RunService")
+local isTyping = false
+
+-- Label do Walk Speed, alinhado à esquerda, abaixo do Fly Speed
+CheckboxWalkSpeedLabel.Name = "CheckboxWalkSpeedLabel"
+CheckboxWalkSpeedLabel.Parent = container
+CheckboxWalkSpeedLabel.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+CheckboxWalkSpeedLabel.BackgroundTransparency = 1
+CheckboxWalkSpeedLabel.TextXAlignment = Enum.TextXAlignment.Left -- Alinha o texto à esquerda
+CheckboxWalkSpeedLabel.Position = UDim2.new(0, 0, 0, CheckboxEspLabel.Position.Y.Offset + CheckboxEspLabel.Size.Y.Offset + 10) -- 10 pixels de espaçamento
+CheckboxWalkSpeedLabel.Font = Enum.Font.ArialBold
+CheckboxWalkSpeedLabel.Size = UDim2.new(0, 100, 0, 20) -- Tamanho fixo para o texto
+CheckboxWalkSpeedLabel.Text = "Walk Speed"
+CheckboxWalkSpeedLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+CheckboxWalkSpeedLabel.TextSize = 16
+
+-- TextBox para Walk Speed (alinhado à direita)
+local WalkSpeedTextBox = Instance.new("TextBox")
+WalkSpeedTextBox.Name = "WalkSpeedTextBox"
+WalkSpeedTextBox.Parent = container
+WalkSpeedTextBox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+WalkSpeedTextBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+WalkSpeedTextBox.Font = Enum.Font.ArialBold
+WalkSpeedTextBox.TextSize = 14
+WalkSpeedTextBox.Size = UDim2.new(0, 50, 0, 20) -- Ajuste o tamanho conforme necessário
+
+-- *** Mudanças para alinhar à direita ***
+WalkSpeedTextBox.AnchorPoint = Vector2.new(1, 0) -- Ancoragem à direita
+WalkSpeedTextBox.Position = UDim2.new(1, -5, 0, CheckboxEsp.Position.Y.Offset + CheckboxEsp.Size.Y.Offset + 10) -- Posiciona à direita, 5px da borda
+
+WalkSpeedTextBox.PlaceholderText = "Speed" -- Texto de dica
+WalkSpeedTextBox.Text = humanoid.WalkSpeed  -- Valor inicial (opcional)
+
+-- Levemente arredondando as pontas do CheckboxEspButton
+local UICornerCheckboxSpeedButton = Instance.new("UICorner")
+UICornerCheckboxSpeedButton.Parent = WalkSpeedTextBox
+UICornerCheckboxSpeedButton.CornerRadius = UDim.new(0, 3)
+
+-- Evento para quando o jogador pressiona Enter dentro do TextBox
+WalkSpeedTextBox.FocusLost:Connect(function(focusLost) -- Verifica se perdeu o foco
+    if focusLost then -- Se realmente perdeu o foco
+        local newSpeed = tonumber(WalkSpeedTextBox.Text)
+        if newSpeed and newSpeed > 0 then
+            humanoid.WalkSpeed = newSpeed
+            WalkSpeedTextBox.Text = newSpeed -- Atualiza o TextBox com o valor correto (caso tenha sido formatado)
+            if Flying then -- Atualiza a velocidade do voo se estiver ativo
+                Speed = newSpeed
+            end
+        else
+            WalkSpeedTextBox.Text = humanoid.WalkSpeed -- Restaura o valor anterior
+            warn("Valor de WalkSpeed inválido. Usando valor padrão.")
+        end
+    end
+end)
+
+
+-- Evento para quando o texto do TextBox é alterado (opcional, para feedback em tempo real)
+WalkSpeedTextBox:GetPropertyChangedSignal("Text"):Connect(function()
+    -- Você pode adicionar aqui um feedback visual, como mudar a cor do texto,
+    -- enquanto o jogador digita, para indicar se o valor é válido ou não.
+    local newSpeed = tonumber(WalkSpeedTextBox.Text)
+    if newSpeed and newSpeed > 0 then
+        WalkSpeedTextBox.TextColor3 = Color3.fromRGB(0, 255, 0) -- Verde se válido
+    else
+        WalkSpeedTextBox.TextColor3 = Color3.fromRGB(255, 0, 0) -- Vermelho se inválido
+    end
+end)
+
+
+-- Quando o jogador começa a digitar, marcamos que ele está editando o campo
+WalkSpeedTextBox.Focused:Connect(function()
+    isTyping = true
+end)
+
+-- Quando o jogador perde o foco (pressiona Enter ou clica fora), aplicamos a mudança
+WalkSpeedTextBox.FocusLost:Connect(function(focusLost)
+    isTyping = false -- Libera para atualização automática
+    if focusLost then
+        local newSpeed = tonumber(WalkSpeedTextBox.Text)
+        if newSpeed and newSpeed > 0 then
+            humanoid.WalkSpeed = newSpeed
+        else
+            WalkSpeedTextBox.Text = tostring(humanoid.WalkSpeed) -- Restaura o valor antigo
+            warn("Valor de WalkSpeed inválido. Usando valor padrão.")
+        end
+    end
+end)
+
+-- Atualiza o TextBox apenas se o jogador não estiver digitando
+RunService.RenderStepped:Connect(function()
+    if not isTyping then
+        WalkSpeedTextBox.Text = tostring(humanoid.WalkSpeed)
+    end
+end)
+
+-------------------------------------------------------------------------------
+
+-- Função para expandir/retrair a GUI
+local expanded = false
+expandButton.MouseButton1Click:Connect(function()
+    expanded = not expanded
+
+    if expanded then
+        -- Aumenta a altura da barra principal
+        madebybloodofbatus.Size = UDim2.new(0, 230, 0, 180)
+        creditsLabel.Visible = true  -- Mostra os créditos
+        expandButton.Text = "-"  -- Muda o texto do botão para contrair
+        extraButtonsContainer.Visible = true  -- Mostra os botões adicionais (CheckboxJump)
+		creditsBackground.Visible = true -- Mostra o fundo cinza
+    else
+        -- Volta ao tamanho original
+        madebybloodofbatus.Size = UDim2.new(0, 200, 0, 25)
+        creditsLabel.Visible = false  -- Esconde os créditos
+        expandButton.Text = "+"  -- Muda o texto do botão para expandir
+        extraButtonsContainer.Visible = false  -- Esconde os botões adicionais (CheckboxJump)
+		creditsBackground.Visible = false -- Esconde o fundo cinza
+    end
+end)
+
+-------------------------------------------------------------------------------
+
+-- Função para arrastar a GUI pela tela
+local Drag = game.CoreGui.thisoneissocoldww.madebybloodofbatus
+gsCoreGui = game:GetService("CoreGui")
+gsTween = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local dragging
+local dragInput
+local dragStart
+local startPos
+
+-- Função para atualizar a posição do objeto durante o arrasto
+local function update(input)
+    local delta = input.Position - dragStart
+    local dragTime = 0.04
+    local SmoothDrag = {}
+    SmoothDrag.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    local dragSmoothFunction = gsTween:Create(Drag, TweenInfo.new(dragTime, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), SmoothDrag)
+    dragSmoothFunction:Play()
+end
+
+-- Quando o usuário começa a interagir com o objeto (clicando ou tocando)
+Drag.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = Drag.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+-- Quando há uma mudança no input enquanto o usuário interage com o objeto
+Drag.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        dragInput = input
+    end
+end)
+
+-- Escuta por mudanças no input global (movimento do mouse ou toque)
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInput and dragging and Drag.Size then
+        update(input)
+    end
+end)
+
+-------------------------------------------------------------------------------
+
+-- Ativa/Desativa o voo
+function ToggleFly()
+    if Flying then
+        -- Desativa o voo
+        Flying = false
+        if BodyGyro then BodyGyro:Destroy() end
+        if BodyVelocity then BodyVelocity:Destroy() end
+        if Character:FindFirstChildOfClass("Humanoid") then
+            Character:FindFirstChildOfClass("Humanoid").PlatformStand = false
+        end
+    else
+        -- Ativa o voo
+        Flying = true
+        BodyGyro = Instance.new("BodyGyro")
+        BodyVelocity = Instance.new("BodyVelocity")
+
+        BodyGyro.P = 9e4
+        BodyGyro.maxTorque = Vector3.new(9e9, 9e9, 9e9)
+        BodyGyro.cframe = HumanoidRootPart.CFrame
+        BodyGyro.Parent = HumanoidRootPart
+
+        BodyVelocity.velocity = Vector3.new(0, 0, 0)
+        BodyVelocity.maxForce = Vector3.new(9e9, 9e9, 9e9)
+        BodyVelocity.Parent = HumanoidRootPart
+
+        if Character:FindFirstChildOfClass("Humanoid") then
+            Character:FindFirstChildOfClass("Humanoid").PlatformStand = true
+        end
+
+        -- Mantém o boneco no ar e ajusta a direção do voo
+        spawn(function()
+            while Flying do
+                -- Aplica o movimento na direção da câmera
+                local cameraDirection = workspace.CurrentCamera.CFrame
+                local moveVector = (cameraDirection.LookVector * Movement.Z) + (cameraDirection.RightVector * Movement.X) + (Vector3.new(0, Movement.Y, 0))
+
+                BodyVelocity.velocity = moveVector * Speed
+                BodyGyro.cframe = cameraDirection
+                wait()
+            end
+        end)
+    end
+end
+
+-- Atualiza o movimento com base nas teclas pressionadas
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+
+    if input.KeyCode == Enum.KeyCode.W then
+        Movement = Vector3.new(Movement.X, Movement.Y, 1) -- Frente
+    elseif input.KeyCode == Enum.KeyCode.S then
+        Movement = Vector3.new(Movement.X, Movement.Y, -1) -- Trás
+    elseif input.KeyCode == Enum.KeyCode.A then
+        Movement = Vector3.new(-1, Movement.Y, Movement.Z) -- Esquerda
+    elseif input.KeyCode == Enum.KeyCode.D then
+        Movement = Vector3.new(1, Movement.Y, Movement.Z) -- Direita
+    elseif input.KeyCode == Enum.KeyCode.Space then
+        Movement = Vector3.new(Movement.X, 1, Movement.Z) -- Subir
+    elseif input.KeyCode == Enum.KeyCode.LeftShift then
+        Movement = Vector3.new(Movement.X, -1, Movement.Z) -- Descer
+    end
+end)
+
+-- Para o movimento quando a tecla for solta
+UserInputService.InputEnded:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+
+    if input.KeyCode == Enum.KeyCode.W or input.KeyCode == Enum.KeyCode.S then
+        Movement = Vector3.new(Movement.X, Movement.Y, 0)
+    elseif input.KeyCode == Enum.KeyCode.A or input.KeyCode == Enum.KeyCode.D then
+        Movement = Vector3.new(0, Movement.Y, Movement.Z)
+    elseif input.KeyCode == Enum.KeyCode.Space or input.KeyCode == Enum.KeyCode.LeftShift then
+        Movement = Vector3.new(Movement.X, 0, Movement.Z)
+    end
+end)
+
+-------------------------------------------------------------------------------
